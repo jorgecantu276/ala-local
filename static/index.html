@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Agenda local para una aeronave y dos personas."
+    />
+    <title>Ala Local · Agenda privada</title>
+    <link rel="stylesheet" href="/style.css" />
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <aside class="sidebar">
+      <a class="brand" href="/" aria-label="Ala Local, inicio"
+        ><span class="brand-symbol">A</span
+        ><span>Ala Local<small>AGENDA PRIVADA</small></span></a
+      >
+      <nav aria-label="Secciones">
+        <button class="nav-item active" data-view="agenda">
+          <span aria-hidden="true">▦</span> Agenda
+        </button>
+        <button class="nav-item" data-view="process">
+          <span aria-hidden="true">⇢</span> Proceso de reserva
+        </button>
+        <button class="nav-item" data-view="documents">
+          <span aria-hidden="true">▤</span> Documentos
+        </button>
+        <button class="nav-item" data-view="settings">
+          <span aria-hidden="true">⚙</span> Configuración
+        </button>
+      </nav>
+      <div class="sidebar-bottom">
+        <span class="local-dot"></span> Datos en esta computadora<small
+          >1 aeronave · 2 personas<br />Uso exclusivo por reserva</small
+        >
+      </div>
+    </aside>
+    <main>
+      <header class="topbar">
+        <span id="aircraft-label">Mi aeronave</span>
+        <div>
+          <span class="local-label">LOCAL</span
+          ><button id="refresh" class="quiet">Actualizar</button>
+        </div>
+      </header>
+      <div id="connection-error" class="notice error" role="alert" hidden></div>
+      <section id="view-agenda" class="view">
+        <div class="page-heading">
+          <div>
+            <p class="eyebrow">PROGRAMACIÓN DE VUELOS PRIVADOS</p>
+            <h1>Agenda de la aeronave</h1>
+            <p class="subtitle">
+              Un calendario para coordinar cada viaje, de salida a regreso.
+            </p>
+          </div>
+          <button class="primary" id="new-booking">＋ Nueva reserva</button>
+        </div>
+        <div id="setup-notice" class="notice setup" hidden>
+          <span
+            ><strong>Tu agenda está lista para configurar.</strong> Agrega los
+            nombres de las dos personas y los datos de la aeronave.</span
+          ><button class="quiet" data-view="settings">
+            Configurar ahora ↗
+          </button>
+        </div>
+        <div class="summary">
+          <div>
+            <span class="summary-label">Reservas del mes</span
+            ><strong id="count-all">0</strong>
+          </div>
+          <div>
+            <span class="summary-label person-one" id="person-one-label"
+              >Persona 1</span
+            ><strong id="count-one">0</strong>
+          </div>
+          <div>
+            <span class="summary-label person-two" id="person-two-label"
+              >Persona 2</span
+            ><strong id="count-two">0</strong>
+          </div>
+          <div>
+            <span class="summary-label">Margen entre usos</span
+            ><strong id="buffer-label">30 <small>min</small></strong>
+          </div>
+        </div>
+        <div class="calendar-panel">
+          <div class="calendar-toolbar">
+            <div class="month-control">
+              <button
+                id="prev-month"
+                class="icon-button"
+                aria-label="Mes anterior"
+              >
+                ‹
+              </button>
+              <h2 id="month-title"></h2>
+              <button
+                id="next-month"
+                class="icon-button"
+                aria-label="Mes siguiente"
+              >
+                ›</button
+              ><button id="today" class="quiet">Hoy</button>
+            </div>
+            <label class="filter-label"
+              >Mostrar
+              <select id="person-filter" aria-label="Filtrar por persona">
+                <option value="all">Todas las reservas</option>
+              </select></label
+            >
+          </div>
+          <div class="weekdays" aria-hidden="true">
+            <span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span
+            ><span>Vie</span><span>Sáb</span><span>Dom</span>
+          </div>
+          <div
+            id="calendar"
+            class="calendar"
+            aria-label="Calendario de reservas"
+          ></div>
+          <div class="calendar-footer">
+            <div id="legend" class="legend"></div>
+            <span id="timezone-label"></span>
+          </div>
+        </div>
+        <div class="list-heading">
+          <div>
+            <h2 id="list-title">Reservas del mes</h2>
+            <p class="small muted">
+              Las reservas tentativas también ocupan la aeronave.
+            </p>
+          </div>
+          <div>
+            <label class="check-label"
+              ><input id="include-cancelled" type="checkbox" /> Incluir
+              canceladas</label
+            ><button id="clear-day" class="quiet" hidden>
+              Ver todo el mes
+            </button>
+          </div>
+        </div>
+        <div id="booking-list"></div>
+      </section>
+      <section id="view-process" class="view" hidden>
+        <div class="page-heading">
+          <div>
+            <p class="eyebrow">RESUMEN GRÁFICO</p>
+            <h1>De la solicitud a la reserva</h1>
+            <p class="subtitle">
+              Cada viaje pertenece a una sola persona y ocupa toda la aeronave.
+            </p>
+          </div>
+        </div>
+        <div class="process-layout">
+          <div
+            class="flow"
+            role="img"
+            aria-label="Elegir persona, definir viaje, comprobar disponibilidad. Si hay conflicto, ajustar fechas. Si está libre, guardar, confirmar y generar documentos."
+          >
+            <div class="flow-node start">Solicitud de viaje</div>
+            <span class="flow-arrow">↓</span>
+            <div class="flow-node"><small>01</small> Elegir a la persona</div>
+            <span class="flow-arrow">↓</span>
+            <div class="flow-node">
+              <small>02</small> Definir ruta, inicio y regreso
+            </div>
+            <span class="flow-arrow">↓</span>
+            <div class="flow-decision">¿La aeronave está disponible?</div>
+            <div class="flow-branches">
+              <div>
+                <span class="branch-label">HAY CONFLICTO</span>
+                <div class="flow-node">
+                  Ajustar fechas y volver a comprobar ↶
+                </div>
+              </div>
+              <div>
+                <span class="branch-label yes">ESTÁ DISPONIBLE ↓</span>
+                <div class="flow-node">Guardar reserva exclusiva</div>
+                <span class="flow-arrow">↓</span>
+                <div class="flow-node">Confirmar el viaje</div>
+                <span class="flow-arrow">↓</span>
+                <div class="flow-node start">Generar PDF o presentación</div>
+              </div>
+            </div>
+          </div>
+          <div class="process-notes">
+            <h2>Reglas de la agenda</h2>
+            <p>
+              Una sola persona por reserva. La aeronave queda ocupada desde el
+              inicio de uso hasta la liberación, incluido el regreso.
+            </p>
+            <p>
+              Las reservas tentativas, confirmadas y completadas impiden cruces.
+              Cancelar una reserva libera su periodo y conserva el historial.
+            </p>
+            <p>
+              El mantenimiento bloquea el calendario. El margen configurable
+              deja tiempo entre dos usos de la aeronave.
+            </p>
+            <p class="muted">
+              La agenda organiza las reservas. La confirmación operativa del
+              vuelo se realiza por separado.
+            </p>
+          </div>
+        </div>
+      </section>
+      <section id="view-documents" class="view" hidden>
+        <div class="page-heading">
+          <div>
+            <p class="eyebrow">REPORTES Y RESPALDOS</p>
+            <h1>La agenda, lista para entregar</h1>
+            <p class="subtitle">
+              Genera documentos con los datos guardados y el periodo que elijas.
+            </p>
+          </div>
+        </div>
+        <div class="document-panel">
+          <h2>Programa de reservas</h2>
+          <div class="form-grid report-fields">
+            <label>Desde<input id="report-from" type="date" required /></label
+            ><label>Hasta<input id="report-to" type="date" required /></label
+            ><label
+              >Persona<select id="report-person">
+                <option value="all">Todas las personas</option>
+              </select></label
+            >
+          </div>
+          <p class="muted small">
+            Incluye reservas que coincidan con el periodo. Excluye canceladas.
+            Las fechas y horas usan la zona configurada.
+          </p>
+          <div class="document-actions">
+            <button class="primary" id="export-pdf">Descargar PDF ↗</button
+            ><button class="secondary" id="export-pptx">
+              Descargar PowerPoint ↗
+            </button>
+          </div>
+          <p id="export-status" role="status" class="small"></p>
+        </div>
+        <div class="document-panel backup-panel">
+          <div>
+            <h2>Respaldo de la agenda</h2>
+            <p class="muted">
+              Conserva una copia en JSON con configuración, reservas e
+              historial.
+            </p>
+            <p class="small muted">
+              También puedes respaldar el archivo SQLite con el servidor
+              detenido. Consulta las instrucciones del proyecto para
+              restaurarlo.
+            </p>
+          </div>
+          <button class="secondary" id="backup">Descargar respaldo</button>
+        </div>
+        <div class="document-panel">
+          <h2>Actividad reciente</h2>
+          <div id="history"></div>
+        </div>
+      </section>
+      <section id="view-settings" class="view" hidden>
+        <div class="page-heading">
+          <div>
+            <p class="eyebrow">TU OPERACIÓN</p>
+            <h1>Una aeronave, dos personas</h1>
+            <p class="subtitle">
+              Personaliza los nombres y las reglas de disponibilidad.
+            </p>
+          </div>
+        </div>
+        <form id="settings-form" class="document-panel settings-panel">
+          <h2>Aeronave</h2>
+          <div class="form-grid">
+            <label
+              >Nombre o matrícula<input
+                name="aircraft"
+                maxlength="60"
+                required /></label
+            ><label
+              >Modelo<input
+                name="model"
+                maxlength="80"
+                placeholder="Opcional" /></label
+            ><label
+              >Base de operación<input
+                name="base"
+                maxlength="80"
+                placeholder="Opcional" /></label
+            ><label
+              >Zona horaria<input
+                name="timezone"
+                maxlength="80"
+                required
+                placeholder="America/Matamoros"
+              /><small
+                >Formato IANA, por ejemplo America/Matamoros.</small
+              ></label
+            >
+          </div>
+          <h2>Personas que reservan</h2>
+          <div class="form-grid">
+            <label
+              >Persona 1<input name="person0" maxlength="40" required /></label
+            ><label
+              >Persona 2<input name="person1" maxlength="40" required
+            /></label>
+          </div>
+          <h2>Disponibilidad</h2>
+          <label class="buffer-field"
+            >Margen entre usos, en minutos<input
+              name="buffer"
+              type="number"
+              min="0"
+              max="1440"
+              step="1"
+              required
+          /></label>
+          <p class="small muted">
+            Se aplica entre dos reservas, incluidos los bloqueos de
+            mantenimiento. Cambiar la zona horaria conserva el instante de las
+            reservas existentes.
+          </p>
+          <div class="form-footer">
+            <span id="settings-status" role="status"></span
+            ><button class="primary" type="submit">
+              Guardar configuración
+            </button>
+          </div>
+        </form>
+        <p class="small muted">
+          Los nombres identifican a quién pertenece cada viaje. Esta versión
+          local usa una sesión compartida en la computadora, sin cuentas ni
+          contraseñas.
+        </p>
+      </section>
+      <footer class="app-footer">
+        Ala Local <span>Agenda privada · Producto base v1.0</span>
+      </footer>
+    </main>
+    <dialog id="booking-dialog" aria-labelledby="dialog-title">
+      <form id="booking-form">
+        <div class="dialog-header">
+          <div>
+            <p class="eyebrow">USO EXCLUSIVO DE LA AERONAVE</p>
+            <h2 id="dialog-title">Nueva reserva</h2>
+          </div>
+          <button
+            class="icon-button"
+            type="button"
+            id="close-dialog"
+            aria-label="Cerrar formulario"
+          >
+            ×
+          </button>
+        </div>
+        <div class="form-grid">
+          <label
+            >Tipo<select name="kind">
+              <option>Vuelo</option>
+              <option>Mantenimiento</option>
+            </select></label
+          ><label id="owner-field">Persona<select name="owner"></select></label
+          ><label
+            >Origen<input
+              name="origin"
+              maxlength="80"
+              placeholder="Aeropuerto o ciudad"
+              required /></label
+          ><label
+            >Destino<input
+              name="destination"
+              maxlength="80"
+              placeholder="Aeropuerto o ciudad"
+              required /></label
+          ><label
+            >Inicio de uso<input
+              name="start"
+              type="datetime-local"
+              required /></label
+          ><label
+            >Liberación / regreso<input
+              name="end"
+              type="datetime-local"
+              required
+          /></label>
+        </div>
+        <p id="booking-timezone" class="small muted"></p>
+        <p class="small muted">
+          Reserva todo el periodo que necesitará la aeronave, incluido el
+          regreso.
+        </p>
+        <label
+          >Estado<select name="status">
+            <option>Tentativa</option>
+            <option>Confirmada</option>
+            <option>Completada</option>
+            <option>Cancelada</option>
+          </select></label
+        >
+        <label
+          >Notas<textarea
+            name="notes"
+            maxlength="2000"
+            rows="3"
+            placeholder="Escalas, pasajeros, coordinación o motivo del mantenimiento"
+          ></textarea>
+        </label>
+        <div id="booking-error" class="notice error" role="alert" hidden></div>
+        <div id="availability" class="availability" role="status"></div>
+        <div class="dialog-footer">
+          <button class="secondary" type="button" id="cancel-dialog">
+            Cerrar</button
+          ><button class="primary" type="submit" id="save-booking">
+            Guardar reserva
+          </button>
+        </div>
+      </form>
+    </dialog>
+    <div id="toast" class="toast" role="status" hidden></div>
+  </body>
+</html>

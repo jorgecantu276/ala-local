@@ -1,0 +1,17 @@
+data/
+node_modules/
+.venv/
+runtime.json
+__pycache__/
+*.pyc
+*.log
+.env
+.env.*
+!.env.example
+coverage/
+test-output/
+*.sqlite3*
+*.db
+*.pdf
+*.pptx
+*-respaldo*.json
